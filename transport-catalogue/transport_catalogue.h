@@ -17,6 +17,8 @@ namespace t_catalogue {
         std::string name;
         std::vector<Stop*> stops;
         bool ring = false;
+        int real_length = 0;
+        double geo_length = 0;
     };
 
     struct Stop {
@@ -43,6 +45,8 @@ class TransportCatalogue {
 public:
     explicit TransportCatalogue(std::istream& input);
 
+    void AddInfo(tc_input_reader::Queue&& queue);
+
     // добавление маршрута в базу
     void AddRoute(std::istream& input);
 
@@ -56,17 +60,21 @@ public:
     const t_catalogue::Stop SearchStop(const std::string& name) const;
 
     //получение информации о маршруте
-    void RouteInfo(std::istream& input) const;
+    std::string GetRoutInfo(std::istream& input) const;
 
     // запрос известного расстояние между остановками
     double SearchPairStops(t_catalogue::Stop* first, t_catalogue::Stop* second) const;
 
 private:
-    std::unordered_map<std::pair<t_catalogue::Stop*, t_catalogue::Stop*>, double, Hasher> stop_pair_to_distance_;
+    std::unordered_map<std::pair<t_catalogue::Stop*, t_catalogue::Stop*>, double, Hasher> stoppair_to_distance_;
 
     std::deque<t_catalogue::Stop> stops_;
     std::deque<t_catalogue::Bus> buses_;
 
     std::unordered_map<std::string_view, t_catalogue::Stop*, std::hash<std::string_view>> stopname_to_stop_;
     std::unordered_map<std::string_view, t_catalogue::Bus*, std::hash<std::string_view>> busname_to_bus_;
+
+    void AddBus(tc_input_reader::Bus&& bus);
+    void AddStop(const tc_input_reader::Stop& stop);
+    void AddStopsDistance(tc_input_reader::Stop&& stop);
 };

@@ -6,6 +6,8 @@
 #include <sstream>
 #include <deque>
 
+#include "geo.h"
+
 namespace tc_input_reader {
     namespace detail {
         struct DistanceToOther {

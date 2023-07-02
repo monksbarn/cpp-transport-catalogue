@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <sstream>
+#include <iomanip>
 
 #include "transport_catalogue.h"
 
@@ -10,6 +12,6 @@ int UniqueStopsCount(std::vector<t_catalogue::Stop*> stops);
 
 void SortBusInfo(std::vector<t_catalogue::Bus*>& buses);
 
-void PrintBusInfo(const TransportCatalogue& catalogue, const std::string& bus);
+std::string PrintBusInfo(const TransportCatalogue& catalogue, const std::string& bus);
 
-void PrintStopInfo(const TransportCatalogue& catalogue, const std::string& stop);
+std::string PrintStopInfo(const TransportCatalogue& catalogue, const std::string& stop);

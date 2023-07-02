@@ -4,66 +4,136 @@
 #include <sstream>
 #include <cassert>
 #include <algorithm>
+#include <iomanip>
 
+#include "geo.h"
 #include "input_reader.h"
 #include "transport_catalogue.h"
 
 using namespace std;
 
-void MinTests() {
+void Test() {
     using namespace t_catalogue;
-    stringstream input("13\nStop Tolstopaltsevo: 55.611087, 37.20829, 3900m to Marushkino\nStop Marushkino: 55.595884, 37.209755, 9900m to Rasskazovka, 100m to Marushkino\nBus number 256: Biryulyovo Zapadnoye > Biryusinka > Universam > Biryulyovo Tovarnaya > Biryulyovo Passazhirskaya > Biryulyovo Zapadnoye\nBus 750: Tolstopaltsevo - Marushkino - Marushkino - Rasskazovka\nStop Rasskazovka: 55.632761, 37.333324, 9500m to Marushkino\nStop Biryulyovo Zapadnoye: 55.574371, 37.6517, 7500m to Rossoshanskaya ulitsa, 1800m to Biryusinka, 2400m to Universam\nStop Biryusinka: 55.581065, 37.64839, 750m to Universam\nStop Universam: 55.587655, 37.645687, 5600m to Rossoshanskaya ulitsa, 900m to Biryulyovo Tovarnaya\nStop Biryulyovo Tovarnaya: 55.592028, 37.653656, 1300m to Biryulyovo Passazhirskaya\nStop Biryulyovo Passazhirskaya: 55.580999, 37.659164, 1200m to Biryulyovo Zapadnoye\nBus 828: Biryulyovo Zapadnoye > Universam > Rossoshanskaya ulitsa > Biryulyovo Zapadnoye\nStop Rossoshanskaya ulitsa: 55.595579, 37.605757\nStop Prazhskaya: 55.611678, 37.603831\n");
+    stringstream input("3\nBus bus: a - b\nStop a: 5., 3.\nStop b: 3., 5.\n");
+    TransportCatalogue a(input);
+    string compare;
+    string str;
 
-    stringstream in("6\nBus number 256\nBus 750\nBus 751\nStop Samara\nStop Prazhskaya\nStop Biryulyovo Zapadnoye\n");
-
-    TransportCatalogue cat(input);
-    cat.RouteInfo(in);
-    /*
-    Вывод
-Bus 256: 6 stops on route, 5 unique stops, 5950 route length, 1.36124 curvature
-Bus 750: 7 stops on route, 3 unique stops, 27400 route length, 1.30853 curvature
-Bus 751: not found
-Stop Samara: not found
-Stop Prazhskaya: no buses
-Stop Biryulyovo Zapadnoye: buses 256 828
-     */
-    cout << "\nStart tests" << endl;
-    assert(cat.SearchRoute("number 256").name == "number 256");
-    assert(cat.SearchRoute("750").name == "750");
-    assert(cat.SearchRoute("751").name.empty());
-    assert(cat.SearchStop("Biryulyovo Zapadnoye").name == "Biryulyovo Zapadnoye");
-    Stop stop_info = cat.SearchStop("Biryulyovo Zapadnoye");
-    auto it = find_if(stop_info.buses.begin(), stop_info.buses.end(), [](const Bus* bus_info) {
-        return (bus_info->name == "number 256");
-        });
-    assert(it != stop_info.buses.end());
-
-    it = find_if(stop_info.buses.begin(), stop_info.buses.end(), [](const Bus* bus_info) {
-        return (bus_info->name == "828");
-        });
-    assert(it != stop_info.buses.end());
-    assert(stop_info.buses.size() == 2);
-
-    Bus bus = cat.SearchRoute("number 256");
-    vector<string> stops = { "Biryulyovo Zapadnoye","Biryusinka","Universam","Biryulyovo Tovarnaya","Biryulyovo Passazhirskaya","Biryulyovo Zapadnoye" };
-    for (const auto& stop : stops) {
-        assert(!cat.SearchStop(stop).name.empty());
-        auto it = find_if(bus.stops.begin(), bus.stops.end(), [&stop](const Stop* stop_info) {
-            return (stop_info->name == stop);
-            });
-        assert(it != bus.stops.end());
+    //1 case
+    input.clear();
+    input.str("3\nBus bus\nStop a\nStop b\n");
+    double geo_length = ComputeDistance(Coordinates{ 5.,3. }, Coordinates{ 3.,5. }) * 2;
+    ostringstream oss;
+    int real_length = geo_length;
+    oss << setprecision(6) << real_length / geo_length;
+    compare = "Bus bus: 3 stops on route, 2 unique stops, " + to_string(real_length) + " route length, " + oss.str() + " curvature\nStop a: buses bus\nStop b: buses bus\n";
+    str = a.GetRoutInfo(input);
+    cout << str;
+    cout << compare;
+    for (size_t i = 0; i < str.size();++i) {
+        cout << i << " from " << str.size() << "| compare " << compare[i] << " - " << str[i] << " real" << endl;
+        assert(compare[i] == str[i]);
     }
-    assert(bus.stops.size() == 6);
+
+    //2 case
+    input.clear();
+    input.str("4\nBus bus: a > b > c > a\nStop a: 5., 3.\nStop b: 3., 5.\nStop c: 6., 5.\n");
+    TransportCatalogue b(input);
+    input.clear();
+    input.str("4\nBus bus\nStop a\nStop b\nStop c");
+    geo_length = ComputeDistance(Coordinates{ 5.,3. }, Coordinates{ 3.,5. }) + ComputeDistance(Coordinates{ 3.,5. }, Coordinates{ 6.,5. }) + ComputeDistance(Coordinates{ 6.,5. }, Coordinates{ 5.,3. });
+    real_length = static_cast<int>(ComputeDistance(Coordinates{ 5.,3. }, Coordinates{ 3.,5. })) + static_cast<int>(ComputeDistance(Coordinates{ 3.,5. }, Coordinates{ 6.,5. })) + static_cast<int>(ComputeDistance(Coordinates{ 6.,5. }, Coordinates{ 5.,3. }));
+    oss.clear();
+    oss.str("");
+    oss << setprecision(6) << real_length / geo_length;
+    compare = "Bus bus: 4 stops on route, 3 unique stops, " + to_string(real_length) + " route length, " + oss.str() + " curvature\nStop a: buses bus\nStop b: buses bus\nStop c: buses bus\n";
+    str = b.GetRoutInfo(input);
+    cout << str;
+    cout << compare;
+    for (size_t i = 0; i < str.size();++i) {
+        cout << i << " from " << str.size() << "| compare " << compare[i] << " - " << str[i] << " real" << endl;
+        assert(compare[i] == str[i]);
+    }
+
+    //3 case
+    input.clear();
+    input.str("4\nBus bus: a > b > c > a\nStop a: 5., 3., 1000m to b\nStop b: 3., 5.,1000m to c\nStop c: 6., 5., 1000m to a\n");
+    TransportCatalogue c(input);
+    input.clear();
+    input.str("4\nBus bus\nStop a\nStop b\nStop c");
+    geo_length = ComputeDistance(Coordinates{ 5.,3. }, Coordinates{ 3.,5. }) + ComputeDistance(Coordinates{ 3.,5. }, Coordinates{ 6.,5. }) + ComputeDistance(Coordinates{ 6.,5. }, Coordinates{ 5.,3. });
+    real_length = 3000;
+    oss.clear();
+    oss.str("");
+    oss << setprecision(6) << real_length / geo_length;
+    compare = "Bus bus: 4 stops on route, 3 unique stops, " + std::to_string(real_length) + " route length, " + oss.str() + " curvature\nStop a: buses bus\nStop b: buses bus\nStop c: buses bus\n";
+    str = c.GetRoutInfo(input);
+    cout << str;
+    cout << compare;
+    for (size_t i = 0; i < str.size();++i) {
+        cout << i << " from " << str.size() << "| compare " << compare[i] << " - " << str[i] << " real" << endl;
+        assert(compare[i] == str[i]);
+    }
+
+    //4 case
+    input.clear();
+    input.str("4\nBus bus: a > b > c > a\nStop a: 5., 3., 1000m to b, 1000m to c\nStop b: 3., 5.,1000m to c\nStop c: 6., 5.\n");
+    TransportCatalogue d(input);
+    input.clear();
+    input.str("4\nBus bus\nStop a\nStop b\nStop c");
+    geo_length = ComputeDistance(Coordinates{ 5.,3. }, Coordinates{ 3.,5. }) + ComputeDistance(Coordinates{ 3.,5. }, Coordinates{ 6.,5. }) + ComputeDistance(Coordinates{ 6.,5. }, Coordinates{ 5.,3. });
+    real_length = 3000;
+    oss.clear();
+    oss.str("");
+    oss << setprecision(6) << real_length / geo_length;
+    compare = "Bus bus: 4 stops on route, 3 unique stops, " + std::to_string(real_length) + " route length, " + oss.str() + " curvature\nStop a: buses bus\nStop b: buses bus\nStop c: buses bus\n";
+    str = d.GetRoutInfo(input);
+    cout << str;
+    cout << compare;
+    for (size_t i = 0; i < str.size();++i) {
+        cout << i << " from " << str.size() << "| compare " << compare[i] << " - " << str[i] << " real" << endl;
+        assert(compare[i] == str[i]);
+    }
+
+    //5 case
+    input.clear();
+    input.str("4\nBus bus: a > b > c > a\nStop a: 5., 3., 1000m to b\nStop b: 3., 5.,1000m to c\nStop c: 6., 5.\n");
+    TransportCatalogue e(input);
+    input.clear();
+    input.str("4\nBus bus\nStop a\nStop b\nStop c");
+    geo_length = ComputeDistance(Coordinates{ 5.,3. }, Coordinates{ 3.,5. }) + ComputeDistance(Coordinates{ 3.,5. }, Coordinates{ 6.,5. }) + ComputeDistance(Coordinates{ 6.,5. }, Coordinates{ 5.,3. });
+    real_length = 2000 + ComputeDistance(Coordinates{ 6.,5. }, Coordinates{ 5.,3. });
+    oss.clear();
+    oss.str("");
+    oss << setprecision(6) << real_length / geo_length;
+    compare = "Bus bus: 4 stops on route, 3 unique stops, " + std::to_string(real_length) + " route length, " + oss.str() + " curvature\nStop a: buses bus\nStop b: buses bus\nStop c: buses bus\n";
+    str = e.GetRoutInfo(input);
+    cout << str;
+    cout << compare;
+    for (size_t i = 0; i < str.size();++i) {
+        cout << i << " from " << str.size() << "| compare " << compare[i] << " - " << str[i] << " real" << endl;
+        assert(compare[i] == str[i]);
+    }
+
 
     cout << "Success" << endl;
 }
 
 int main() {
-    istringstream input("4\nStop A: 0.5, -1, 100000m to B\nStop B: 0, -1.1\nStop C: -2, -1.1\nBus 256: B - A\n");
-    TransportCatalogue cat(cin);
-    istringstream in("1\nBus 256\n");
-    cat.RouteInfo(cin);
-    //MinTests();
+    // stringstream input("13\nStop Tolstopaltsevo: 55.611087, 37.20829, 3900m to Marushkino\nStop Marushkino: 55.595884, 37.209755, 9900m to Rasskazovka, 100m to Marushkino\nBus number 256: Biryulyovo Zapadnoye > Biryusinka > Universam > Biryulyovo Tovarnaya > Biryulyovo Passazhirskaya > Biryulyovo Zapadnoye\nBus 750: Tolstopaltsevo - Marushkino - Marushkino - Rasskazovka\nStop Rasskazovka: 55.632761, 37.333324, 9500m to Marushkino\nStop Biryulyovo Zapadnoye: 55.574371, 37.6517, 7500m to Rossoshanskaya ulitsa, 1800m to Biryusinka, 2400m to Universam\nStop Biryusinka: 55.581065, 37.64839, 750m to Universam\nStop Universam: 55.587655, 37.645687, 5600m to Rossoshanskaya ulitsa, 900m to Biryulyovo Tovarnaya\nStop Biryulyovo Tovarnaya: 55.592028, 37.653656, 1300m to Biryulyovo Passazhirskaya\nStop Biryulyovo Passazhirskaya: 55.580999, 37.659164, 1200m to Biryulyovo Zapadnoye\nBus 828: Biryulyovo Zapadnoye > Universam > Rossoshanskaya ulitsa > Biryulyovo Zapadnoye\nStop Rossoshanskaya ulitsa: 55.595579, 37.605757\nStop Prazhskaya: 55.611678, 37.603831\n");
+    // stringstream in("6\nBus number 256\nBus 750\nBus 751\nStop Samara\nStop Prazhskaya\nStop Biryulyovo Zapadnoye\n");
+    // TransportCatalogue cat(input);
+    //stringstream i("1\nBus number 256: Biryulyovo Zapadnoye > Biryusinka > Universam > Biryulyovo Tovarnaya > Biryulyovo Passazhirskaya > Biryulyovo Zapadnoye\n");
+   // cat.AddRoute(i);
+   // cout << cat.GetRoutInfo(in);
+    // istringstream input("4\nStop A: 0.5, -1, 100000m to B\nStop B: 0, -1.1\nStop C: -2, -1.1\nBus 256: B - A\n");
+    // TransportCatalogue cat(input);
+    // istringstream in("1\nBus 256\n");
+    // cout << cat.GetRoutInfo(in);
+    TransportCatalogue c(cin);
+    cout << c.GetRoutInfo(cin);
+    //Test();
+
     return 0;
 }
 /*
@@ -110,7 +180,7 @@ Bus X: R stops on route, U unique stops, L route length
     X — название маршрута. Оно совпадает с названием, переданным в запрос Bus.
     R — количество остановок в маршруте автобуса от stop1 до stop1 включительно.
     U — количество уникальных остановок, на которых останавливается автобус. Одинаковыми считаются остановки, имеющие одинаковые названия.
-    L — длина маршрута в метрах. В этом задании для простоты считается, что автобус проезжает путь между двумя соседними остановками по кратчайшему расстоянию по земной поверхности. Для вычисления расстояния между двумя точками пользуйтесь функцией ComputeDistance из заготовки кода.
+    L — длина маршрута в метрах. В этом задании для простоты считается, что автобус проезжает путь между двумя соседними остановками по кратчайшему расстоянию по земной поверхности. Для вычисления расстояния между двумя точками пользуйтесь функцией Computegeo_lengthance из заготовки кода.
 
 Величину расстояния, а также другие вещественные числа в последующих частях задачи, выводите с шестью значащими цифрами, то есть предваряя манипулятором setprecision(6).
 Если маршрут X не найден, выведите Bus X: not found.
