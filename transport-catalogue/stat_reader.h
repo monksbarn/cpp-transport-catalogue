@@ -7,11 +7,14 @@
 #include <iomanip>
 
 #include "transport_catalogue.h"
+#include "input_reader.h"
 
-int UniqueStopsCount(std::vector<t_catalogue::Stop*> stops);
+int UniqueStopsCount(std::vector<std::string> stops);
 
-void SortBusInfo(std::vector<t_catalogue::Bus*>& buses);
+void SortBusInfo(std::vector<std::string>& buses);
 
-std::string PrintBusInfo(const TransportCatalogue& catalogue, const std::string& bus);
+std::string GetBusInfo(const TransportCatalogue& catalogue, const std::string& bus);
 
-std::string PrintStopInfo(const TransportCatalogue& catalogue, const std::string& stop);
+std::string GetStopInfo(const TransportCatalogue& catalogue, const std::string& stop);
+
+std::string PrintRoutInfo(const TransportCatalogue& catalogue, std::istream& input);

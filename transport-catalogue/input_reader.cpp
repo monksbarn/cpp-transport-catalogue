@@ -97,3 +97,52 @@ void RemoveSpaces(std::string& line) {
     line.erase(0, line.find_first_not_of(" "));
     line.erase(line.find_last_not_of(" ") + 1);
 }
+
+void FillTransportCatalogue(TransportCatalogue& catalogue, std::istream& input) {
+    tc_input_reader::Queue queue = std::move(CreateQueue(input));
+    std::unordered_map<std::string, t_catalogue::Stop> stopname_to_stop;
+    std::unordered_map<std::pair<std::string, std::string>, double, Hasher> stoppair_to_distance;
+    for (const auto& stop : queue.stops) {
+        stopname_to_stop[stop.name] = { stop.name, stop.lat,stop.lng,{} };
+        for (const auto& [other_name, distance] : stop.distance_to_other) {
+            stoppair_to_distance.insert({ {stop.name,other_name},distance });
+        }
+    }
+    for (const auto& bus : queue.buses) {
+        t_catalogue::Bus bus_info = { bus.name,{},bus.ring };
+        for (auto stop = bus.stops.begin(); stop != bus.stops.end();++stop) {
+            auto next_stop = std::next(stop, 1);
+            auto stop_info = stopname_to_stop.at(*stop);
+            bus_info.stops.push_back(*stop);
+            if (stop_info.buses.empty() || stop_info.buses.back() != bus.name) {
+                stopname_to_stop.at(*stop).buses.push_back(bus_info.name);
+            }
+            if (next_stop != bus.stops.end()) {
+                auto next_stop_info = stopname_to_stop.at(*next_stop);
+                double geo_length = ComputeDistance(Coordinates{ stop_info.lat,stop_info.lng }, Coordinates{ next_stop_info.lat,next_stop_info.lng });
+                auto res = stoppair_to_distance.find(std::make_pair(*stop, *next_stop));
+                int length_to = (res != stoppair_to_distance.end()) ? res->second : 0;
+                res = stoppair_to_distance.find(std::make_pair(*next_stop, *stop));
+                int length_from = (res != stoppair_to_distance.end()) ? res->second : 0;
+                bus_info.geo_length += bus_info.ring ? geo_length : geo_length * 2;
+                if (length_to && length_from) {
+                    bus_info.real_length += (bus_info.ring) ? length_to : length_to + length_from;
+                }
+                else if (length_to) {
+                    bus_info.real_length += (bus_info.ring) ? length_to : length_to * 2;
+                }
+                else if (length_from) {
+                    bus_info.real_length += (bus_info.ring) ? length_from : length_from * 2;
+                }
+                else {
+                    bus_info.real_length += (bus_info.ring) ? geo_length : geo_length * 2;
+                }
+
+            }
+        }
+        catalogue.AddBus(bus_info);
+    }
+    for (const auto& [key, value] : stopname_to_stop) {
+        catalogue.AddStop(value);
+    }
+}

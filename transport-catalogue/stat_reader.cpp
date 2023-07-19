@@ -1,13 +1,13 @@
 #include "stat_reader.h"
 
-int UniqueStopsCount(std::vector<t_catalogue::Stop*> stops) {
-    std::sort(stops.begin(), stops.end(), [](const t_catalogue::Stop* left, const t_catalogue::Stop* right) {
-        return left->name > right->name;
+int UniqueStopsCount(std::vector<std::string> stops) {
+    std::sort(stops.begin(), stops.end(), [](const auto left, const auto right) {
+        return left > right;
         });
     return std::distance(stops.begin(), std::unique(stops.begin(), stops.end()));
 }
 
-std::string PrintBusInfo(const TransportCatalogue& catalogue, const std::string& bus) {
+std::string GetBusInfo(const TransportCatalogue& catalogue, const std::string& bus) {
     std::string out;
     t_catalogue::Bus bus_info = std::move(catalogue.SearchRoute(bus));
     if (!bus_info.name.empty()) {
@@ -22,7 +22,7 @@ std::string PrintBusInfo(const TransportCatalogue& catalogue, const std::string&
     return out;
 }
 
-std::string PrintStopInfo(const TransportCatalogue& catalogue, const std::string& stop) {
+std::string GetStopInfo(const TransportCatalogue& catalogue, const std::string& stop) {
     std::string out;
     t_catalogue::Stop stop_info = std::move(catalogue.SearchStop(stop));
     out += ("Stop " + stop + ":");
@@ -33,7 +33,7 @@ std::string PrintStopInfo(const TransportCatalogue& catalogue, const std::string
         else {
             out += " buses";
             for (const auto& bus : stop_info.buses) {
-                out += (" " + bus->name);
+                out += (" " + static_cast<std::string>(bus));
             }
         }
     }
@@ -43,8 +43,17 @@ std::string PrintStopInfo(const TransportCatalogue& catalogue, const std::string
     return out;
 }
 
-void SortBusInfo(std::vector<t_catalogue::Bus*>& buses) {
-    std::sort(buses.begin(), buses.end(), [](const t_catalogue::Bus* lhs, const t_catalogue::Bus* rhs) {
-        return std::lexicographical_compare(lhs->name.begin(), lhs->name.end(), rhs->name.begin(), rhs->name.end());
+void SortBusInfo(std::vector<std::string>& buses) {
+    std::sort(buses.begin(), buses.end(), [](const std::string& lhs, const std::string& rhs) {
+        return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
         });
+}
+
+std::string PrintRoutInfo(const TransportCatalogue& catalogue, std::istream& input) {
+    std::string out;
+    auto data = std::move(ParseQuery(input));
+    for (const auto& [type, key] : data) {
+        out += (type == "Bus") ? GetBusInfo(catalogue, key) + "\n" : GetStopInfo(catalogue, key) + "\n";
+    }
+    return out;
 }

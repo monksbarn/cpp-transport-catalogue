@@ -7,15 +7,12 @@
 #include <vector>
 #include <unordered_map>
 
-#include "input_reader.h"
 
 namespace t_catalogue {
-    struct Bus;
-    struct Stop;
 
     struct Bus {
         std::string name;
-        std::vector<Stop*> stops;
+        std::vector<std::string> stops;
         bool ring = false;
         int real_length = 0;
         double geo_length = 0;
@@ -25,33 +22,21 @@ namespace t_catalogue {
         std::string name;
         double lat;
         double lng;
-        std::vector<Bus*> buses;
+        std::vector<std::string> buses;
     };
 }
 
-struct Hasher {
-    size_t operator()(const std::pair<t_catalogue::Stop*, t_catalogue::Stop*>& stop_pair) const {
-        size_t lat_one = d_hasher(stop_pair.first->lat);
-        size_t lng_one = d_hasher(stop_pair.first->lng);
-        size_t lat_two = d_hasher(stop_pair.second->lat);
-        size_t lng_two = d_hasher(stop_pair.second->lng);
-        return lat_one + lng_one * 7 + lat_two * 49 + lng_two * (7 * 7 * 7);
-    }
-private:
-    std::hash<double> d_hasher;
-};
-
 class TransportCatalogue {
 public:
-    explicit TransportCatalogue(std::istream& input);
-
-    void AddInfo(tc_input_reader::Queue&& queue);
 
     // добавление маршрута в базу
-    void AddRoute(std::istream& input);
+    void AddBus(const t_catalogue::Bus& bus);
 
     // добавление остановки в базу
-    void AddStop(std::istream& input);
+    void AddStop(const t_catalogue::Stop& stop);
+
+    //добавление расстояния между остановками
+    void AddStopsDistance(const std::string& first, const std::string& second, const double distance);
 
     // поиск маршрута по имени
     const t_catalogue::Bus SearchRoute(const std::string& name) const;
@@ -63,10 +48,9 @@ public:
     std::string GetRoutInfo(std::istream& input) const;
 
     // запрос известного расстояние между остановками
-    double SearchPairStops(t_catalogue::Stop* first, t_catalogue::Stop* second) const;
+    double SearchPairStops(t_catalogue::Stop& first, t_catalogue::Stop& second) const;
 
 private:
-    std::unordered_map<std::pair<t_catalogue::Stop*, t_catalogue::Stop*>, double, Hasher> stoppair_to_distance_;
 
     std::deque<t_catalogue::Stop> stops_;
     std::deque<t_catalogue::Bus> buses_;
@@ -74,7 +58,4 @@ private:
     std::unordered_map<std::string_view, t_catalogue::Stop*, std::hash<std::string_view>> stopname_to_stop_;
     std::unordered_map<std::string_view, t_catalogue::Bus*, std::hash<std::string_view>> busname_to_bus_;
 
-    void AddBus(tc_input_reader::Bus&& bus);
-    void AddStop(const tc_input_reader::Stop& stop);
-    void AddStopsDistance(tc_input_reader::Stop&& stop);
 };

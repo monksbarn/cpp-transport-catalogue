@@ -9,13 +9,15 @@
 #include "geo.h"
 #include "input_reader.h"
 #include "transport_catalogue.h"
+#include "stat_reader.h"
 
 using namespace std;
 
 void Test() {
     using namespace t_catalogue;
     stringstream input("3\nBus bus: a - b\nStop a: 5., 3.\nStop b: 3., 5.\n");
-    TransportCatalogue a(input);
+    TransportCatalogue a;
+    FillTransportCatalogue(a, input);
     string compare;
     string str;
 
@@ -38,7 +40,8 @@ void Test() {
     //2 case
     input.clear();
     input.str("4\nBus bus: a > b > c > a\nStop a: 5., 3.\nStop b: 3., 5.\nStop c: 6., 5.\n");
-    TransportCatalogue b(input);
+    TransportCatalogue b;
+    FillTransportCatalogue(b, input);
     input.clear();
     input.str("4\nBus bus\nStop a\nStop b\nStop c");
     geo_length = ComputeDistance(Coordinates{ 5.,3. }, Coordinates{ 3.,5. }) + ComputeDistance(Coordinates{ 3.,5. }, Coordinates{ 6.,5. }) + ComputeDistance(Coordinates{ 6.,5. }, Coordinates{ 5.,3. });
@@ -58,7 +61,8 @@ void Test() {
     //3 case
     input.clear();
     input.str("4\nBus bus: a > b > c > a\nStop a: 5., 3., 1000m to b\nStop b: 3., 5.,1000m to c\nStop c: 6., 5., 1000m to a\n");
-    TransportCatalogue c(input);
+    TransportCatalogue c;
+    FillTransportCatalogue(c, input);
     input.clear();
     input.str("4\nBus bus\nStop a\nStop b\nStop c");
     geo_length = ComputeDistance(Coordinates{ 5.,3. }, Coordinates{ 3.,5. }) + ComputeDistance(Coordinates{ 3.,5. }, Coordinates{ 6.,5. }) + ComputeDistance(Coordinates{ 6.,5. }, Coordinates{ 5.,3. });
@@ -78,7 +82,8 @@ void Test() {
     //4 case
     input.clear();
     input.str("4\nBus bus: a > b > c > a\nStop a: 5., 3., 1000m to b, 1000m to c\nStop b: 3., 5.,1000m to c\nStop c: 6., 5.\n");
-    TransportCatalogue d(input);
+    TransportCatalogue d;
+    FillTransportCatalogue(d, input);
     input.clear();
     input.str("4\nBus bus\nStop a\nStop b\nStop c");
     geo_length = ComputeDistance(Coordinates{ 5.,3. }, Coordinates{ 3.,5. }) + ComputeDistance(Coordinates{ 3.,5. }, Coordinates{ 6.,5. }) + ComputeDistance(Coordinates{ 6.,5. }, Coordinates{ 5.,3. });
@@ -98,7 +103,8 @@ void Test() {
     //5 case
     input.clear();
     input.str("4\nBus bus: a > b > c > a\nStop a: 5., 3., 1000m to b\nStop b: 3., 5.,1000m to c\nStop c: 6., 5.\n");
-    TransportCatalogue e(input);
+    TransportCatalogue e;
+    FillTransportCatalogue(e, input);
     input.clear();
     input.str("4\nBus bus\nStop a\nStop b\nStop c");
     geo_length = ComputeDistance(Coordinates{ 5.,3. }, Coordinates{ 3.,5. }) + ComputeDistance(Coordinates{ 3.,5. }, Coordinates{ 6.,5. }) + ComputeDistance(Coordinates{ 6.,5. }, Coordinates{ 5.,3. });
@@ -120,19 +126,26 @@ void Test() {
 }
 
 int main() {
-    // stringstream input("13\nStop Tolstopaltsevo: 55.611087, 37.20829, 3900m to Marushkino\nStop Marushkino: 55.595884, 37.209755, 9900m to Rasskazovka, 100m to Marushkino\nBus number 256: Biryulyovo Zapadnoye > Biryusinka > Universam > Biryulyovo Tovarnaya > Biryulyovo Passazhirskaya > Biryulyovo Zapadnoye\nBus 750: Tolstopaltsevo - Marushkino - Marushkino - Rasskazovka\nStop Rasskazovka: 55.632761, 37.333324, 9500m to Marushkino\nStop Biryulyovo Zapadnoye: 55.574371, 37.6517, 7500m to Rossoshanskaya ulitsa, 1800m to Biryusinka, 2400m to Universam\nStop Biryusinka: 55.581065, 37.64839, 750m to Universam\nStop Universam: 55.587655, 37.645687, 5600m to Rossoshanskaya ulitsa, 900m to Biryulyovo Tovarnaya\nStop Biryulyovo Tovarnaya: 55.592028, 37.653656, 1300m to Biryulyovo Passazhirskaya\nStop Biryulyovo Passazhirskaya: 55.580999, 37.659164, 1200m to Biryulyovo Zapadnoye\nBus 828: Biryulyovo Zapadnoye > Universam > Rossoshanskaya ulitsa > Biryulyovo Zapadnoye\nStop Rossoshanskaya ulitsa: 55.595579, 37.605757\nStop Prazhskaya: 55.611678, 37.603831\n");
-    // stringstream in("6\nBus number 256\nBus 750\nBus 751\nStop Samara\nStop Prazhskaya\nStop Biryulyovo Zapadnoye\n");
-    // TransportCatalogue cat(input);
-    //stringstream i("1\nBus number 256: Biryulyovo Zapadnoye > Biryusinka > Universam > Biryulyovo Tovarnaya > Biryulyovo Passazhirskaya > Biryulyovo Zapadnoye\n");
-   // cat.AddRoute(i);
-   // cout << cat.GetRoutInfo(in);
-    // istringstream input("4\nStop A: 0.5, -1, 100000m to B\nStop B: 0, -1.1\nStop C: -2, -1.1\nBus 256: B - A\n");
-    // TransportCatalogue cat(input);
-    // istringstream in("1\nBus 256\n");
-    // cout << cat.GetRoutInfo(in);
-    TransportCatalogue c(cin);
-    cout << c.GetRoutInfo(cin);
-    //Test();
+    stringstream input("13\nStop Tolstopaltsevo: 55.611087, 37.20829, 3900m to Marushkino\nStop Marushkino: 55.595884, 37.209755, 9900m to Rasskazovka, 100m to Marushkino\nBus number 256: Biryulyovo Zapadnoye > Biryusinka > Universam > Biryulyovo Tovarnaya > Biryulyovo Passazhirskaya > Biryulyovo Zapadnoye\nBus 750: Tolstopaltsevo - Marushkino - Marushkino - Rasskazovka\nStop Rasskazovka: 55.632761, 37.333324, 9500m to Marushkino\nStop Biryulyovo Zapadnoye: 55.574371, 37.6517, 7500m to Rossoshanskaya ulitsa, 1800m to Biryusinka, 2400m to Universam\nStop Biryusinka: 55.581065, 37.64839, 750m to Universam\nStop Universam: 55.587655, 37.645687, 5600m to Rossoshanskaya ulitsa, 900m to Biryulyovo Tovarnaya\nStop Biryulyovo Tovarnaya: 55.592028, 37.653656, 1300m to Biryulyovo Passazhirskaya\nStop Biryulyovo Passazhirskaya: 55.580999, 37.659164, 1200m to Biryulyovo Zapadnoye\nBus 828: Biryulyovo Zapadnoye > Universam > Rossoshanskaya ulitsa > Biryulyovo Zapadnoye\nStop Rossoshanskaya ulitsa: 55.595579, 37.605757\nStop Prazhskaya: 55.611678, 37.603831\n");
+    stringstream in("6\nBus number 256\nBus 750\nBus 751\nStop Samara\nStop Prazhskaya\nStop Biryulyovo Zapadnoye\n");
+    TransportCatalogue cat;
+    FillTransportCatalogue(cat, input);
+    cout << cat.GetRoutInfo(in) << endl;
+
+    stringstream in1("6\nBus number 256\nBus 750\nBus 751\nStop Samara\nStop Prazhskaya\nStop Biryulyovo Zapadnoye\n");
+    cout << PrintRoutInfo(cat, in1);
+
+    //     stringstream i("1\nBus number 256: Biryulyovo Zapadnoye > Biryusinka > Universam > Biryulyovo Tovarnaya > Biryulyovo Passazhirskaya > Biryulyovo Zapadnoye\n");
+    //    FillTransportCatalogue(cat,i);
+    //    cout << cat.GetRoutInfo(in);
+    //     istringstream input("4\nStop A: 0.5, -1, 100000m to B\nStop B: 0, -1.1\nStop C: -2, -1.1\nBus 256: B - A\n");
+    //     TransportCatalogue cat(input);
+    //     istringstream in("1\nBus 256\n");
+    //     cout << cat.GetRoutInfo(in);
+    //     TransportCatalogue c;
+    //     //c.AddInfo(cin);
+    //     //cout << c.GetRoutInfo(cin);
+        //Test();
 
     return 0;
 }
