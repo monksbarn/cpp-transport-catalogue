@@ -1,19 +1,17 @@
 #pragma once
 
-#include <iostream>
 #include <string>
 #include <string_view>
 #include <deque>
 #include <vector>
 #include <unordered_map>
 
-
 namespace t_catalogue {
 
     struct Bus {
         std::string name;
         std::vector<std::string> stops;
-        bool ring = false;
+        bool is_roundtrip = false;
         int real_length = 0;
         double geo_length = 0;
     };
@@ -26,6 +24,7 @@ namespace t_catalogue {
     };
 }
 
+
 class TransportCatalogue {
 public:
 
@@ -35,20 +34,17 @@ public:
     // добавление остановки в базу
     void AddStop(const t_catalogue::Stop& stop);
 
-    //добавление расстояния между остановками
-    void AddStopsDistance(const std::string& first, const std::string& second, const double distance);
-
     // поиск маршрута по имени
-    const t_catalogue::Bus SearchRoute(const std::string& name) const;
+    const t_catalogue::Bus* SearchRoute(std::string_view name) const;
 
     // поиск остановки по имени
-    const t_catalogue::Stop SearchStop(const std::string& name) const;
+    const t_catalogue::Stop* SearchStop(std::string_view name) const;
 
-    //получение информации о маршруте
-    std::string GetRoutInfo(std::istream& input) const;
+    // получение информации об остановках
+    const std::deque<t_catalogue::Stop>& GetStopsInfo() const;
 
-    // запрос известного расстояние между остановками
-    double SearchPairStops(t_catalogue::Stop& first, t_catalogue::Stop& second) const;
+    // получение информации об автобусах
+    const std::deque<t_catalogue::Bus>& GetBusInfo() const;
 
 private:
 
