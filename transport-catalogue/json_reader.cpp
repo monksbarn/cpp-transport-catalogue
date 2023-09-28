@@ -7,7 +7,7 @@
 #include <deque>
 
 //================================================================================================================READ_JSON
-RequestsDataBase ReadJSON(std::istream& input) {
+RequestsDataBase JSONReader::ReadJSON(std::istream& input) {
     using namespace std::literals;
     RequestsDataBase db;
     json::Node tmp = json::LoadNode(input).AsMap();
@@ -31,7 +31,7 @@ RequestsDataBase ReadJSON(std::istream& input) {
 
 
 //================================================================================================================CREATE_QUEUE
-domain::Queue CreateQueue(const json::Node& base_requests) {
+domain::Queue JSONReader::CreateQueue(const json::Node& base_requests) const {
     using namespace std::literals;
     domain::Queue queue;
     for (const auto& request : base_requests.AsArray()) {
@@ -86,8 +86,8 @@ domain::Queue CreateQueue(const json::Node& base_requests) {
 
 
 //================================================================================================================FILL_CATALOGUE
-void FillCatalogue(TransportCatalogue& catalogue, const json::Node& base_requests) {
-    domain::Queue queue = std::move(CreateQueue(base_requests));
+void JSONReader::FillCatalogue(TransportCatalogue& catalogue) const {
+    domain::Queue queue = std::move(CreateQueue(db_.base_requests));
     std::unordered_map<std::string, t_catalogue::Stop> stopname_to_stop;
     std::unordered_map<std::pair<std::string, std::string>, double, Hasher> stoppair_to_distance;
     for (const auto& stop : queue.stops) {
@@ -139,10 +139,10 @@ void FillCatalogue(TransportCatalogue& catalogue, const json::Node& base_request
 
 
 //================================================================================================================HANDLE_STAT_REQUESTS
-json::Node HandleStatRequests(const RequestHandler& handler, const json::Node& stat_requests) {
+json::Node JSONReader::HandleStatRequests(const RequestHandler& handler) const {
     using namespace std::literals;
     json::Array result;
-    for (const auto& request : stat_requests.AsArray()) {
+    for (const auto& request : db_.stat_requests.AsArray()) {
         std::string type, name, map;
         int id = 0;
         for (const auto& [key, value] : request.AsMap()) {
@@ -183,10 +183,22 @@ json::Node HandleStatRequests(const RequestHandler& handler, const json::Node& s
 }
 
 
+const json::Node JSONReader::GetBaseRequests() const {
+    return db_.base_requests;
+}
+
+const json::Node JSONReader::GetStatRequests() const {
+    return db_.stat_requests;
+}
+
+const json::Node JSONReader::GetRenderSettings() const {
+    return db_.render_settings;
+}
+
 
 
 //================================================================================================================BUS_AS_JSON
-json::Node BusAsJSON(const t_catalogue::Bus* bus_info, const int id) {
+json::Node JSONReader::BusAsJSON(const t_catalogue::Bus* bus_info, const int id) const {
     using namespace std::literals;
     int stops_count = (bus_info->is_roundtrip) ? bus_info->stops.size() : bus_info->stops.size() * 2 - 1;
     return json::Node({
@@ -201,7 +213,7 @@ json::Node BusAsJSON(const t_catalogue::Bus* bus_info, const int id) {
 
 
 //================================================================================================================STOP_AS_JSON
-json::Node StopAsJSON(const t_catalogue::Stop* stop_info, const int id) {
+json::Node JSONReader::StopAsJSON(const t_catalogue::Stop* stop_info, const int id) const {
     using namespace std::literals;
     json::Array arr;
     for (auto it = stop_info->buses.begin(); it != stop_info->buses.end(); ++it) {
@@ -216,7 +228,7 @@ json::Node StopAsJSON(const t_catalogue::Stop* stop_info, const int id) {
 
 
 //================================================================================================================MAP_AS_JSON
-json::Node MapAsJSON(std::string&& value, const int id) {
+json::Node JSONReader::MapAsJSON(std::string&& value, const int id) const {
     using namespace std::literals;
     return json::Node({
         {"map"s,json::Node(std::move(value))},
@@ -225,7 +237,7 @@ json::Node MapAsJSON(std::string&& value, const int id) {
 }
 
 //================================================================================================================NOT_FOUND
-json::Node NotFound(const int id) {
+json::Node JSONReader::NotFound(const int id) const {
     using namespace std::literals;
     return json::Node({
         {"request_id"s, json::Node(id)},

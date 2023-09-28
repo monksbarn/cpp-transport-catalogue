@@ -111,7 +111,7 @@ RenderSettings HandleRenderSettings(const json::Node& render) {
 
 
 //================================================================================================================TEXT_RENDER_GENERAL_SETTINGS
-void TextRenderGeneralSettings(svg::Text& text, const svg::Point& point, const std::vector<double>& offset, const double font_size) {
+void GeneralTextRenderSettings(svg::Text& text, const svg::Point& point, const std::vector<double>& offset, const double font_size) {
     using namespace std::literals;
     text.SetPosition(point).
         SetOffset({ offset.front(),offset.back() }).
@@ -143,9 +143,9 @@ const svg::Document MapRenderer::MakeSVG(const TransportCatalogue& catalogue) co
             if (stop_info) {
                 svg::Point point = projector({ stop_info->lat,stop_info->lng });
                 route_line.AddPoint(point);
-                if (stop == bus.stops.begin() || (stop == std::next(bus.stops.end(), -1) && !bus.is_roundtrip && bus.stops.front() != bus.stops.back())) {
+                if (stop == bus.stops.begin() || (stop == std::next(bus.stops.end(), -1)/*  && !bus.is_roundtrip */ && bus.stops.front() != bus.stops.back())) {
                     text.push_back(svg::Text{});
-                    TextRenderGeneralSettings(text.back(), point, settings_.bus_label_offset, settings_.bus_label_font_size);
+                    GeneralTextRenderSettings(text.back(), point, settings_.bus_label_offset, settings_.bus_label_font_size);
                     text.back().SetData(bus.name).
                         SetFillColor(settings_.underlayer_color).
                         SetStrokeColor(settings_.underlayer_color).
@@ -154,7 +154,7 @@ const svg::Document MapRenderer::MakeSVG(const TransportCatalogue& catalogue) co
                         SetStrokeLineJoin(svg::StrokeLineJoin::ROUND).
                         SetFontWeight("bold"s);
                     text.push_back(svg::Text{});
-                    TextRenderGeneralSettings(text.back(), point, settings_.bus_label_offset, settings_.bus_label_font_size);
+                    GeneralTextRenderSettings(text.back(), point, settings_.bus_label_offset, settings_.bus_label_font_size);
                     text.back().SetData(bus.name).
                         SetFillColor(settings_.color_palette.at(color_palette_index % settings_.color_palette.size())).
                         SetFontWeight("bold"s);
@@ -193,7 +193,7 @@ const svg::Document MapRenderer::MakeSVG(const TransportCatalogue& catalogue) co
             circle.SetCenter(point).SetRadius(settings_.stop_radius).SetFillColor("white"s);
             doc.Add(circle);
             text.push_back(svg::Text{});
-            TextRenderGeneralSettings(text.back(), point, settings_.stop_label_offset, settings_.stop_label_font_size);
+            GeneralTextRenderSettings(text.back(), point, settings_.stop_label_offset, settings_.stop_label_font_size);
             text.back().SetData(stop.name).
                 SetFillColor(settings_.underlayer_color).
                 SetStrokeColor(settings_.underlayer_color).
@@ -201,7 +201,7 @@ const svg::Document MapRenderer::MakeSVG(const TransportCatalogue& catalogue) co
                 SetStrokeLineCap(svg::StrokeLineCap::ROUND).
                 SetStrokeLineJoin(svg::StrokeLineJoin::ROUND);
             text.push_back(svg::Text{});
-            TextRenderGeneralSettings(text.back(), point, settings_.stop_label_offset, settings_.stop_label_font_size);
+            GeneralTextRenderSettings(text.back(), point, settings_.stop_label_offset, settings_.stop_label_font_size);
             text.back().SetData(stop.name).SetFillColor("black"s);
         }
     }

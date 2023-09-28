@@ -18,25 +18,40 @@ struct RequestsDataBase {
   json::Node render_settings;
 };
 
-//Преобразование входного потока в JSON
-RequestsDataBase ReadJSON(std::istream& input);
+class JSONReader {
+public:
+  //Преобразование входного потока в JSON-формат запросов к каталогу
+  JSONReader(std::istream& input) : db_(std::move(ReadJSON(input))) {}
 
-//Преобразование JSON "base_requests" в очереди bus and stop
-domain::Queue CreateQueue(const json::Node& requests);
+  RequestsDataBase ReadJSON(std::istream& input);
 
-//Добавление в каталог данных
-void FillCatalogue(TransportCatalogue& catalogue, const json::Node& base_requests);
+  //Добавление в каталог данных
+  void FillCatalogue(TransportCatalogue& catalogue) const;
 
-//Обработка JSON "stat_requests"
-json::Node HandleStatRequests(const RequestHandler& catalogue, const json::Node& stat_requests);
+  const json::Node GetBaseRequests() const;
 
-//Преобразование данных об остановках в JSON
-json::Node StopAsJSON(const t_catalogue::Stop* stop_info, const int id);
+  const json::Node GetStatRequests() const;
 
-//Преобразование данных об автобусах в JSON
-json::Node BusAsJSON(const t_catalogue::Bus* bus_info, const int id);
+  const json::Node GetRenderSettings() const;
 
-json::Node MapAsJSON(std::string&& value, const int id);
+  //Обработка JSON "stat_requests"
+  json::Node HandleStatRequests(const RequestHandler& catalogue) const;
 
-//Ответ в формате JSON в случае отсутсвия автобуса или остановки
-json::Node NotFound(const int id);
+private:
+  RequestsDataBase db_;
+
+  //Преобразование JSON "base_requests" в очереди bus and stop
+  domain::Queue CreateQueue(const json::Node& requests) const;
+
+  //Возвращает данные об остановках в формате JSON
+  json::Node StopAsJSON(const t_catalogue::Stop* stop_info, const int id) const;
+
+  //Возвращает данные об атвобусах в формате в JSON
+  json::Node BusAsJSON(const t_catalogue::Bus* bus_info, const int id) const;
+
+  //Возвращает карту маршрутов в формате JSON
+  json::Node MapAsJSON(std::string&& value, const int id) const;
+
+  //возвращает ответ в формате JSON в случае отсутсвия автобуса или остановки
+  json::Node NotFound(const int id) const;
+};

@@ -39,7 +39,10 @@ void GeneralTextRenderSettings(svg::Text& text, const svg::Point& point, const s
 RenderSettings HandleRenderSettings(const json::Node& render);
 
 //Сортировка названий автобусов по алвавиту
-void SortingBuses(std::deque<t_catalogue::Bus>& buses);
+void Sorting(std::deque<t_catalogue::Bus>& buses);
+
+//Сортировка названий остановок по алфавиту
+void Sorting(std::deque<t_catalogue::Stop>& buses);
 
 //Проецирование географических координат в координаты на плоскость
 class SphereProjector {
