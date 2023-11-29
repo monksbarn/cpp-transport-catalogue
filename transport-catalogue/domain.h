@@ -37,6 +37,14 @@ namespace domain {
       std::deque<Bus> buses;
    };
 
+   template<typename Weight>
+   struct RouteInfo {
+      Weight weight;
+      std::vector<size_t> edges;
+   };
+
+
+
    int UniqueStopsCount(std::vector<std::string> stops);
 
    void SortBuses(std::vector<std::string>& buses);

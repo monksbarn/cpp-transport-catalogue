@@ -120,6 +120,7 @@ private:
 //Создает SVG на основе переданнх настроек прорисовки маршрутов
 class MapRenderer {
 public:
+   MapRenderer() = default;
    MapRenderer(RenderSettings settings) : settings_(std::move(settings)) {}
 
    const svg::Document MakeSVG(const TransportCatalogue& catalogue) const;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "domain.h"
+
 #include <string>
 #include <string_view>
 #include <deque>
@@ -12,6 +14,8 @@ namespace t_catalogue {
       std::string name;
       std::vector<std::string> stops;
       bool is_roundtrip = false;
+      double velocity = 0;
+      int wait_time = 0;
       int real_length = 0;
       double geo_length = 0;
    };
@@ -46,6 +50,14 @@ public:
    // получение информации об автобусах
    const std::deque<t_catalogue::Bus>& GetBusInfo() const;
 
+   size_t GetUniqueStopsCount() const;
+
+   double GetDistanceBetweenStops(const std::string& bus, const std::string& from, const std::string& to) const;
+
+   void SetDistanceBetweenStops(const std::string& bus, const std::string& from, const std::string& to, double length_to, double length_from);
+
+   void SetDistanceBetweenStops(const std::string& bus, const std::string& from, const std::string& to, double length);
+
 private:
 
    std::deque<t_catalogue::Stop> stops_;
@@ -53,5 +65,6 @@ private:
 
    std::unordered_map<std::string_view, t_catalogue::Stop*, std::hash<std::string_view>> stopname_to_stop_;
    std::unordered_map<std::string_view, t_catalogue::Bus*, std::hash<std::string_view>> busname_to_bus_;
+   std::map<std::string, std::unordered_map<std::pair<std::string, std::string>, double, Hasher>> stops_distances_;
 
 };
