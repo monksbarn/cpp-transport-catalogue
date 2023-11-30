@@ -14,8 +14,6 @@ namespace t_catalogue {
       std::string name;
       std::vector<std::string> stops;
       bool is_roundtrip = false;
-      double velocity = 0;
-      int wait_time = 0;
       int real_length = 0;
       double geo_length = 0;
    };

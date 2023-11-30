@@ -21,14 +21,6 @@ struct RequestsDataBase {
    json::Node routing_settings;
 };
 
-struct Buffer {
-   std::string_view bus_name;
-   std::string_view from;
-   int wait_time{};
-   double weight{};
-   int span_count{};
-};
-
 class JSONReader {
 
 public:
@@ -56,10 +48,6 @@ public:
 
 private:
    RequestsDataBase db_;
-   std::map<std::string_view, size_t> stop_name_to_id_;
-   std::map<size_t, Buffer> buffer_;
-
-   void StopNameToID(std::string_view name);
 
    //Преобразование JSON "base_requests" в очереди bus and stop
    domain::Queue CreateQueue(const json::Node& requests) const;
@@ -73,7 +61,8 @@ private:
    //Возвращает карту маршрутов в формате JSON
    json::Node MapAsJSON(std::string&& value, int id) const;
 
-   json::Node RouteAsJSON(const typename graph::Router<double>::RouteInfo& route_info, int id) const;
+   //Возвращает описание кратчайшего маршрута в формате JSON
+   json::Node RouteAsJSON(const typename graph::Router<double>::RouteInfo& route_info, const RequestHandler& handler, int id) const;
 
    //возвращает ответ в формате JSON в случае отсутсвия автобуса или остановки
    json::Node NotFound(const int id) const;

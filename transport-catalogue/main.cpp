@@ -1,6 +1,8 @@
+
 #include "json_builder.h"
 #include "map_renderer.h"
 #include "transport_catalogue.h"
+#include "transport_router.h"
 #include "json_reader.h"
 #include <sstream>
 #include <fstream>
@@ -163,13 +165,12 @@ int main() {
     }
     std::ofstream ofs("my_out.json", std::ios::binary);
     TransportCatalogue cat;
-    JSONReader json_reader(ifs);
-
+    JSONReader json_reader(cin);
     json_reader.FillCatalogue(cat);
-    //RequestHandler handler(cat, HandleRenderSettings(json_reader.GetRenderSettings()));
-    //handler.RenderMap().Render(std::cout);
-    RequestHandler handler(cat, MapRenderer(HandleRenderSettings(json_reader.GetRenderSettings())), json_reader.CreateGraph(cat));
-
+    RequestHandler handler(
+        cat,
+        MapRenderer(HandleRenderSettings(json_reader.GetRenderSettings())),
+        TransportRouter(cat, HandleRouteSettings(json_reader.GetRoutingSettings())));
     json::Print(json::Document(json_reader.HandleStatRequests(handler)), ofs);
 }
 

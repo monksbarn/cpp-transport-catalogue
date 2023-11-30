@@ -17,10 +17,13 @@ const svg::Document RequestHandler::RenderMap() const {
    return renderer_.MakeSVG(catalogue_);
 }
 
-std::optional<typename graph::Router<double>::RouteInfo> RequestHandler::BuildRoute(graph::VertexId from, graph::VertexId to) const {
-   return router_.BuildRoute(from, to);
+const Buffer& RequestHandler::GetEdgeInfoFromId(size_t id) const {
+   return router_.GetEdgeInfoFromId(id);
 }
 
-const graph::Edge<double>& RequestHandler::GetEdge(graph::EdgeId edge_id) const {
-   return graph_.GetEdge(edge_id);
+std::optional<size_t> RequestHandler::GetIdFromStop(std::string_view name) const {
+   return router_.GetIdFromStop(name);
 }
+
+
+

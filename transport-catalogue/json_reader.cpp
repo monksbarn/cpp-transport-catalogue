@@ -97,17 +97,6 @@ domain::Queue JSONReader::CreateQueue(const json::Node& base_requests) const {
 void JSONReader::FillCatalogue(TransportCatalogue& catalogue) const {
    using namespace std::literals;
 
-   int bus_wait_time{};
-   double bus_velocity{};
-   for (const auto& [key, value] : db_.routing_settings.AsDict()) {
-      if (key == "bus_wait_time"s) {
-         bus_wait_time = value.AsInt();
-      }
-      else {
-         bus_velocity = value.AsDouble();
-      }
-   }
-
    domain::Queue queue = std::move(CreateQueue(db_.base_requests));
    std::unordered_map<std::string, t_catalogue::Stop> stopname_to_stop;
    std::unordered_map<std::pair<std::string, std::string>, double, Hasher> stoppair_to_distance;
@@ -118,7 +107,7 @@ void JSONReader::FillCatalogue(TransportCatalogue& catalogue) const {
       }
    }
    for (const auto& bus : queue.buses) {
-      t_catalogue::Bus bus_info = { bus.name,{},bus.is_roundtrip,bus_velocity, bus_wait_time };
+      t_catalogue::Bus bus_info = { bus.name, {} ,bus.is_roundtrip };
       for (auto stop = bus.stops.begin(); stop != bus.stops.end();++stop) {
          auto next_stop = std::next(stop, 1);
          auto stop_info = stopname_to_stop.at(*stop);
@@ -164,45 +153,6 @@ void JSONReader::FillCatalogue(TransportCatalogue& catalogue) const {
    }
 }
 
-//================================================================================================================FILL_GRAPH
-
-void JSONReader::StopNameToID(std::string_view name) {
-   if (!stop_name_to_id_.count(name)) {
-      size_t id = stop_name_to_id_.size();
-      stop_name_to_id_[name] = id;
-   }
-}
-
-
-graph::DirectedWeightedGraph<double> JSONReader::CreateGraph(const TransportCatalogue& catalogue) {
-   using namespace t_catalogue;
-   using namespace std::literals;
-   graph::DirectedWeightedGraph<double> graph(catalogue.GetUniqueStopsCount());
-   for (const auto& bus : catalogue.GetBusInfo()) {
-      StopNameToID(bus.stops.front());
-      for (size_t from = 0; from < bus.stops.size(); ++from) {
-         double weight_from = bus.wait_time;
-         double weight_to = bus.wait_time;
-         int span_count_from = 0;
-         int span_count_to = 0;
-         for (size_t to = from + 1; to < bus.stops.size(); ++to) {
-            StopNameToID(bus.stops.at(to));
-            weight_from += catalogue.GetDistanceBetweenStops(bus.name, bus.stops.at(to - 1), bus.stops.at(to)) / (bus.velocity * 1000 / 60);
-            size_t id = graph.AddEdge({ stop_name_to_id_.at(bus.stops.at(from)),stop_name_to_id_.at(bus.stops.at(to)), weight_from });
-            ++span_count_from;
-            buffer_[id] = Buffer{ bus.name, bus.stops.at(from),bus.wait_time,weight_from ,span_count_from };
-            if (!bus.is_roundtrip) {
-               ++span_count_to;
-               weight_to += catalogue.GetDistanceBetweenStops(bus.name, bus.stops.at(to), bus.stops.at(to - 1)) / (bus.velocity * 1000 / 60);
-               size_t id = graph.AddEdge({ stop_name_to_id_.at(bus.stops.at(to)),stop_name_to_id_.at(bus.stops.at(from)), weight_to });
-               buffer_[id] = Buffer{ bus.name, bus.stops.at(to),bus.wait_time,weight_to,span_count_to };
-            }
-         }
-      }
-   }
-   return graph;
-}
-
 //================================================================================================================HANDLE_STAT_REQUESTS
 json::Node JSONReader::HandleStatRequests(const RequestHandler& handler) const {
    using namespace std::literals;
@@ -244,11 +194,11 @@ json::Node JSONReader::HandleStatRequests(const RequestHandler& handler) const {
          result.push_back(std::move(MapAsJSON(oss.str(), id)));
       }
       else if (type == "Route"s) {
-         auto f = stop_name_to_id_.find(from);
-         auto t = stop_name_to_id_.find(to);
-         if (f != stop_name_to_id_.end() && t != stop_name_to_id_.end()) {
-            const auto data = handler.BuildRoute(f->second, t->second);
-            result.push_back((data.has_value()) ? std::move(RouteAsJSON(*data, id)) : std::move(NotFound(id)));
+         auto f = handler.GetIdFromStop(from);
+         auto t = handler.GetIdFromStop(to);
+         if (f.has_value() && t.has_value()) {
+            const auto data = handler.BuildRoute(*f, *t);
+            result.push_back(data.has_value() ? std::move(RouteAsJSON(*data, handler, id)) : std::move(NotFound(id)));
          }
          else {
             result.push_back(std::move(NotFound(id)));
@@ -312,7 +262,8 @@ json::Node JSONReader::MapAsJSON(std::string&& value, const int id) const {
    return json::Builder{}.StartDict().Key("map"s).Value(std::move(value)).Key("request_id"s).Value(id).EndDict().Build();
 }
 
-json::Node JSONReader::RouteAsJSON(const typename graph::Router<double>::RouteInfo& route_info, int id) const {
+
+json::Node JSONReader::RouteAsJSON(const typename graph::Router<double>::RouteInfo& route_info, const RequestHandler& handler, int id) const {
    using namespace std::literals;
    json::Builder builder;
    builder.StartDict()
@@ -321,14 +272,14 @@ json::Node JSONReader::RouteAsJSON(const typename graph::Router<double>::RouteIn
       if (route_info.weight != 0) {
          builder.StartDict()
             .Key("type"s).Value("Wait"s)
-            .Key("stop_name"s).Value(static_cast<std::string>(buffer_.at(*edge_id).from))
-            .Key("time"s).Value(buffer_.at(*edge_id).wait_time)
+            .Key("stop_name"s).Value(static_cast<std::string>(handler.GetEdgeInfoFromId(*edge_id).from))
+            .Key("time"s).Value(handler.GetEdgeInfoFromId(*edge_id).wait_time)
             .EndDict()
             .StartDict()
             .Key("type"s).Value("Bus"s)
-            .Key("bus"s).Value(static_cast<std::string>(buffer_.at(*edge_id).bus_name))
-            .Key("span_count"s).Value(buffer_.at(*edge_id).span_count)
-            .Key("time"s).Value(buffer_.at(*edge_id).weight - buffer_.at(*edge_id).wait_time)
+            .Key("bus"s).Value(static_cast<std::string>(handler.GetEdgeInfoFromId(*edge_id).bus_name))
+            .Key("span_count"s).Value(handler.GetEdgeInfoFromId(*edge_id).span_count)
+            .Key("time"s).Value(handler.GetEdgeInfoFromId(*edge_id).weight - handler.GetEdgeInfoFromId(*edge_id).wait_time)
             .EndDict();
       }
    }

@@ -7,30 +7,18 @@
 
 
 #include "transport_catalogue.h"
+#include "transport_router.h"
 #include "map_renderer.h"
 #include "domain.h"
-#include "router.h"
-#include "graph.h"
 
 
 
 class RequestHandler {
 public:
-   RequestHandler(const TransportCatalogue& db, MapRenderer renderer) :
-      catalogue_(db),
-      renderer_(std::move(renderer)) {
-   }
-   RequestHandler(const TransportCatalogue& db, graph::DirectedWeightedGraph<double>&& graph) :
-      catalogue_(db),
-      graph_(std::move(graph)),
-      router_(graph_) {
-   }
-
-   RequestHandler(const TransportCatalogue& db, MapRenderer renderer, graph::DirectedWeightedGraph<double>&& graph) :
-      catalogue_(db),
-      renderer_(renderer),
-      graph_(std::move(graph)),
-      router_(graph_) {
+   RequestHandler(const TransportCatalogue& catalogue, MapRenderer&& renderer, TransportRouter&& router) :
+      catalogue_(catalogue),
+      renderer_(std::move(renderer)),
+      router_(std::move(router)) {
    }
 
    //Возвращает информацию о маршруте 
@@ -45,20 +33,22 @@ public:
    //Возвращает контейнкр svg
    const svg::Document RenderMap() const;
 
-   std::optional<typename graph::Router<double>::RouteInfo> BuildRoute(graph::VertexId from, graph::VertexId to) const;
+   //Возвращает информацию о ребре по его ID
+   const Buffer& GetEdgeInfoFromId(size_t id) const;
 
-   const graph::Edge<double>& GetEdge(graph::EdgeId edge_id) const;
+   //Возвращает ID остановки по названию
+   std::optional<size_t> GetIdFromStop(std::string_view name) const;
 
-   virtual ~RequestHandler() = default;
+   //Построить маршрут
+   std::optional<typename graph::Router<double>::RouteInfo>  BuildRoute(graph::VertexId from, graph::VertexId to) const {
+      return router_.BuildRoute(from, to);
+   }
 
 private:
-   // RequestHandler использует агрегацию объектов "Транспортный Справочник" и "Визуализатор Карты"
+
    const TransportCatalogue& catalogue_;
    const MapRenderer renderer_;
-   const graph::DirectedWeightedGraph<double> graph_;
-   const graph::Router<double> router_;
+   const TransportRouter router_;
 };
-
-
 
 
